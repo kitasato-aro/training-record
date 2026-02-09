@@ -114,6 +114,18 @@
       min-width: 280px;
     }
     
+    th.th-hours {
+      min-width: 60px;
+      text-align: center;
+    }
+    
+    td.td-hours {
+      text-align: center;
+      font-size: 13px;
+      color: #64748B;
+      white-space: nowrap;
+    }
+    
     th.th-member {
       min-width: 110px;
       text-align: center;
@@ -329,6 +341,69 @@
       margin-top: 6px;
     }
     
+    .stat-hours {
+      font-size: 12px;
+      color: #0D9488;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    
+    .stat-hours.achieved {
+      color: #059669;
+    }
+    
+    .stat-hours.not-achieved {
+      color: #DC2626;
+    }
+    
+    .stats-subtitle {
+      font-weight: 400;
+      font-size: 12px;
+      color: #64748B;
+    }
+    
+    /* 全体集計 */
+    .total-stats {
+      background: linear-gradient(135deg, #F0FDFA 0%, #ECFDF5 100%);
+      border: 1px solid #99F6E4;
+    }
+    
+    .total-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    
+    .total-card {
+      padding: 16px;
+      background: white;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    
+    .total-label {
+      font-size: 12px;
+      color: #64748B;
+      margin-bottom: 4px;
+    }
+    
+    .total-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #0F766E;
+    }
+    
+    .total-value.warning {
+      color: #DC2626;
+    }
+    
+    .total-unit {
+      font-size: 14px;
+      font-weight: 400;
+      color: #64748B;
+    }
+    
     /* フッター */
     .footer {
       text-align: center;
@@ -405,6 +480,7 @@
         <thead>
           <tr id="headerRow">
             <th class="th-training">研修項目</th>
+            <th class="th-hours">時間</th>
             <!-- メンバーのヘッダーはJSで生成 -->
           </tr>
         </thead>
@@ -431,8 +507,16 @@
 
     <!-- 統計 -->
     <div class="stats">
-      <h3>完了状況サマリー</h3>
+      <h3>完了状況サマリー <span class="stats-subtitle">（年間目標: <span id="targetHours">20</span>時間）</span></h3>
       <div class="stats-grid" id="statsGrid">
+        <!-- 内容はJSで生成 -->
+      </div>
+    </div>
+    
+    <!-- 全体集計 -->
+    <div class="stats total-stats">
+      <h3>研修時間 全体集計</h3>
+      <div class="total-grid" id="totalGrid">
         <!-- 内容はJSで生成 -->
       </div>
     </div>
@@ -449,16 +533,20 @@
     // ============================================================
     
     // 研修項目マスタ（必要に応じて追加・編集）
+    // hours: 研修時間（時間単位）
     const TRAINING_ITEMS = [
-      { id: 1, name: 'GCP研修（医薬品）', category: '必須', provider: 'ICRP' },
-      { id: 2, name: 'GCP研修（再生医療）', category: '必須', provider: 'ICRP' },
-      { id: 3, name: '研究倫理研修', category: '必須', provider: 'CITI Japan' },
-      { id: 4, name: '個人情報保護研修', category: '必須', provider: '施設内' },
-      { id: 5, name: '利益相反（COI）研修', category: '必須', provider: '施設内' },
-      { id: 6, name: 'EDCシステム操作研修', category: '実務', provider: '施設内' },
-      { id: 7, name: 'データマネジメント基礎', category: '実務', provider: '施設内' },
-      { id: 8, name: '有害事象報告研修', category: '実務', provider: '施設内' },
+      { id: 1, name: 'GCP研修（医薬品）', category: '必須', provider: 'ICRP', hours: 3 },
+      { id: 2, name: 'GCP研修（再生医療）', category: '必須', provider: 'ICRP', hours: 3 },
+      { id: 3, name: '研究倫理研修', category: '必須', provider: 'CITI Japan', hours: 4 },
+      { id: 4, name: '個人情報保護研修', category: '必須', provider: '施設内', hours: 2 },
+      { id: 5, name: '利益相反（COI）研修', category: '必須', provider: '施設内', hours: 1.5 },
+      { id: 6, name: 'EDCシステム操作研修', category: '実務', provider: '施設内', hours: 3 },
+      { id: 7, name: 'データマネジメント基礎', category: '実務', provider: '施設内', hours: 2.5 },
+      { id: 8, name: '有害事象報告研修', category: '実務', provider: '施設内', hours: 2 },
     ];
+    
+    // 年間目標研修時間（SOP準拠）
+    const TARGET_HOURS = 20;
     
     // メンバーマスタ（必要に応じて追加・編集）
     const MEMBERS = [
@@ -546,6 +634,12 @@
         `;
         tr.appendChild(tdTraining);
         
+        // 時間セル
+        const tdHours = document.createElement('td');
+        tdHours.className = 'td-hours';
+        tdHours.textContent = `${training.hours}h`;
+        tr.appendChild(tdHours);
+        
         // メンバーごとの記録セル
         MEMBERS.forEach(member => {
           const td = document.createElement('td');
@@ -598,7 +692,7 @@
       saveRecords();
       
       // 画面更新（シンプルに再描画）
-      document.getElementById('headerRow').innerHTML = '<th class="th-training">研修項目</th>';
+      document.getElementById('headerRow').innerHTML = '<th class="th-training">研修項目</th><th class="th-hours">時間</th>';
       document.getElementById('tableBody').innerHTML = '';
       renderTable();
       updateStats();
@@ -609,10 +703,26 @@
       const statsGrid = document.getElementById('statsGrid');
       statsGrid.innerHTML = '';
       
+      // 目標時間を表示
+      document.getElementById('targetHours').textContent = TARGET_HOURS;
+      
+      // 全体集計用の変数
+      let totalCompletedHours = 0;
+      let membersAchieved = 0;
+      
       MEMBERS.forEach(member => {
-        const completed = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]).length;
+        const completedTrainings = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]);
+        const completed = completedTrainings.length;
         const total = TRAINING_ITEMS.length;
         const percentage = Math.round((completed / total) * 100);
+        
+        // 完了した研修の時間を合計
+        const completedHours = completedTrainings.reduce((sum, t) => sum + t.hours, 0);
+        totalCompletedHours += completedHours;
+        
+        // 目標達成判定
+        const achieved = completedHours >= TARGET_HOURS;
+        if (achieved) membersAchieved++;
         
         let barColor = '#F59E0B'; // 黄色
         if (percentage === 100) barColor = '#059669'; // 緑
@@ -626,8 +736,57 @@
             <div class="stat-bar" style="width: ${percentage}%; background-color: ${barColor};"></div>
           </div>
           <div class="stat-text">${completed}/${total}件 (${percentage}%)</div>
+          <div class="stat-hours ${achieved ? 'achieved' : 'not-achieved'}">
+            ${completedHours}時間 / ${TARGET_HOURS}時間 ${achieved ? '✓ 達成' : ''}
+          </div>
         `;
         statsGrid.appendChild(card);
+      });
+      
+      // 全体集計を更新
+      updateTotalStats(totalCompletedHours, membersAchieved);
+    }
+    
+    // 全体集計の更新
+    function updateTotalStats(totalHours, achievedCount) {
+      const totalGrid = document.getElementById('totalGrid');
+      totalGrid.innerHTML = '';
+      
+      // 全研修の合計時間
+      const allTrainingHours = TRAINING_ITEMS.reduce((sum, t) => sum + t.hours, 0);
+      
+      // 平均完了時間
+      const avgHours = (totalHours / MEMBERS.length).toFixed(1);
+      
+      const cards = [
+        {
+          label: '全研修の合計時間',
+          value: allTrainingHours,
+          unit: '時間',
+          warning: false
+        },
+        {
+          label: 'メンバー平均完了時間',
+          value: avgHours,
+          unit: '時間',
+          warning: parseFloat(avgHours) < TARGET_HOURS
+        },
+        {
+          label: '目標達成者数',
+          value: achievedCount,
+          unit: `/ ${MEMBERS.length}人`,
+          warning: achievedCount < MEMBERS.length
+        }
+      ];
+      
+      cards.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'total-card';
+        card.innerHTML = `
+          <div class="total-label">${c.label}</div>
+          <div class="total-value ${c.warning ? 'warning' : ''}">${c.value}<span class="total-unit">${c.unit}</span></div>
+        `;
+        totalGrid.appendChild(card);
       });
     }
     
@@ -650,17 +809,28 @@
     
     // データ出力（CSV形式）
     function exportData() {
-      let csv = '研修項目,';
+      let csv = '研修項目,時間(h),';
       csv += MEMBERS.map(m => m.name).join(',') + '\n';
       
       TRAINING_ITEMS.forEach(training => {
-        csv += `"${training.name}",`;
+        csv += `"${training.name}",${training.hours},`;
         csv += MEMBERS.map(member => {
           const key = `${member.id}-${training.id}`;
           return records[key] || '';
         }).join(',');
         csv += '\n';
       });
+      
+      // 合計行を追加
+      csv += '\n合計時間,,';
+      csv += MEMBERS.map(member => {
+        const completedTrainings = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]);
+        const completedHours = completedTrainings.reduce((sum, t) => sum + t.hours, 0);
+        return `${completedHours}時間`;
+      }).join(',');
+      csv += '\n';
+      
+      csv += `目標時間,,${MEMBERS.map(() => `${TARGET_HOURS}時間`).join(',')}\n`;
       
       // BOM付きUTF-8でダウンロード
       const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
