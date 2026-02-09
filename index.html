@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>臨床研究 研修記録管理</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+      background-color: #F8FAFC;
+      min-height: 100vh;
+    }
+    
+    /* ヘッダー */
+    .header {
+      background: linear-gradient(135deg, #0F766E 0%, #115E59 100%);
+      color: white;
+      padding: 20px 32px;
+      box-shadow: 0 4px 20px rgba(15, 118, 110, 0.3);
+    }
+    
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+    
+    .header p {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .date-display {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-outline {
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    /* メインコンテンツ */
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 32px;
+    }
+    
+    /* テーブル */
+    .table-wrapper {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    
+    th {
+      padding: 14px 16px;
+      text-align: left;
+      background: #F1F5F9;
+      font-weight: 600;
+      color: #334155;
+      border-bottom: 2px solid #E2E8F0;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+    }
+    
+    th.th-training {
+      min-width: 280px;
+    }
+    
+    th.th-member {
+      min-width: 110px;
+      text-align: center;
+    }
+    
+    .member-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    
+    .member-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    
+    .member-role {
+      font-size: 11px;
+      color: #64748B;
+      font-weight: 400;
+    }
+    
+    tr:nth-child(even) {
+      background: #F8FAFC;
+    }
+    
+    tr:hover {
+      background: #F0FDFA;
+    }
+    
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    
+    td.td-training {
+      font-weight: 500;
+    }
+    
+    td.td-record {
+      text-align: center;
+      padding: 8px;
+    }
+    
+    .training-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .required-badge {
+      font-size: 10px;
+      font-weight: 600;
+      color: #DC2626;
+      background: #FEE2E2;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    
+    /* 完了ボタン */
+    .record-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 52px;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .record-btn:hover {
+      transform: scale(1.05);
+    }
+    
+    .record-btn.completed {
+      background: #D1FAE5;
+      color: #059669;
+    }
+    
+    .record-btn.not-completed {
+      background: #F1F5F9;
+      color: #94A3B8;
+    }
+    
+    .record-btn.not-completed:hover {
+      background: #E0F2FE;
+      color: #0284C7;
+    }
+    
+    .check-mark {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    
+    .empty-mark {
+      font-size: 22px;
+      color: #CBD5E1;
+    }
+    
+    .completed-date {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    
+    /* 凡例 */
+    .legend {
+      margin-top: 24px;
+      padding: 16px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .legend h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+    
+    .legend-items {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #64748B;
+    }
+    
+    .legend-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    
+    .legend-icon.completed {
+      background: #D1FAE5;
+      color: #059669;
+    }
+    
+    .legend-icon.not-completed {
+      background: #F1F5F9;
+      color: #CBD5E1;
+    }
+    
+    /* 統計 */
+    .stats {
+      margin-top: 24px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .stats h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 16px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    
+    .stat-card {
+      padding: 12px;
+      background: #F8FAFC;
+      border-radius: 8px;
+    }
+    
+    .stat-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+    
+    .stat-progress {
+      height: 6px;
+      background: #E2E8F0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .stat-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    
+    .stat-text {
+      font-size: 12px;
+      color: #64748B;
+      margin-top: 6px;
+    }
+    
+    /* フッター */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #94A3B8;
+      font-size: 12px;
+    }
+    
+    /* 印刷用 */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .header {
+        background: #0F766E !important;
+        -webkit-print-color-adjust: exact;
+      }
+      
+      .table-wrapper {
+        box-shadow: none;
+        border: 1px solid #E2E8F0;
+      }
+    }
+    
+    /* レスポンシブ */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+      
+      .main {
+        padding: 16px;
+      }
+      
+      th.th-training {
+        min-width: 200px;
+      }
+      
+      th.th-member {
+        min-width: 90px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header class="header">
+    <div class="header-content">
+      <div>
+        <h1>臨床研究 研修記録</h1>
+        <p>北里大学病院 臨床研究推進センター</p>
+      </div>
+      <div class="header-right">
+        <span class="date-display" id="currentDate"></span>
+        <button class="btn btn-outline no-print" onclick="window.print()">印刷</button>
+        <button class="btn btn-outline no-print" onclick="exportData()">データ出力</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="main">
+    <div class="table-wrapper">
+      <table id="trainingTable">
+        <thead>
+          <tr id="headerRow">
+            <th class="th-training">研修項目</th>
+            <!-- メンバーのヘッダーはJSで生成 -->
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- 内容はJSで生成 -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 凡例 -->
+    <div class="legend no-print">
+      <h3>使い方</h3>
+      <div class="legend-items">
+        <div class="legend-item">
+          <span class="legend-icon completed">○</span>
+          <span>完了済み（クリックで取消）</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon not-completed">−</span>
+          <span>未完了（クリックで完了登録）</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 統計 -->
+    <div class="stats">
+      <h3>完了状況サマリー</h3>
+      <div class="stats-grid" id="statsGrid">
+        <!-- 内容はJSで生成 -->
+      </div>
+    </div>
+  </main>
+
+  <!-- フッター -->
+  <footer class="footer">
+    <p>© 2024 北里大学病院 臨床研究推進センター</p>
+  </footer>
+
+  <script>
+    // ============================================================
+    // 【設定エリア】研修項目とメンバーをここで編集してください
+    // ============================================================
+    
+    // 研修項目マスタ（必要に応じて追加・編集）
+    const TRAINING_ITEMS = [
+      { id: 1, name: 'GCP研修（医薬品）', category: '必須', provider: 'ICRP' },
+      { id: 2, name: 'GCP研修（再生医療）', category: '必須', provider: 'ICRP' },
+      { id: 3, name: '研究倫理研修', category: '必須', provider: 'CITI Japan' },
+      { id: 4, name: '個人情報保護研修', category: '必須', provider: '施設内' },
+      { id: 5, name: '利益相反（COI）研修', category: '必須', provider: '施設内' },
+      { id: 6, name: 'EDCシステム操作研修', category: '実務', provider: '施設内' },
+      { id: 7, name: 'データマネジメント基礎', category: '実務', provider: '施設内' },
+      { id: 8, name: '有害事象報告研修', category: '実務', provider: '施設内' },
+    ];
+    
+    // メンバーマスタ（必要に応じて追加・編集）
+    const MEMBERS = [
+      { id: 1, name: '中川 智枝', role: 'PM' },
+      { id: 2, name: '見戸 幸子', role: 'PM' },
+      { id: 3, name: '小林 祐太', role: 'PM' },
+      { id: 4, name: '大石 理絵', role: 'PM' },
+      { id: 5, name: '稲葉 咲子', role: 'DM' },
+      { id: 6, name: '香川 理沙', role: 'DM' },
+      { id: 7, name: '高橋 和彦', role: 'OT' },
+    ];
+    
+    // ============================================================
+    // 以下はシステムコード（通常は編集不要）
+    // ============================================================
+    
+    // ローカルストレージのキー
+    const STORAGE_KEY = 'trainingRecords';
+    
+    // 研修記録データ
+    let records = {};
+    
+    // 初期化
+    function init() {
+      // 日付表示
+      document.getElementById('currentDate').textContent = formatDateJP(new Date());
+      
+      // 保存データの読み込み
+      loadRecords();
+      
+      // テーブル生成
+      renderTable();
+      
+      // 統計更新
+      updateStats();
+    }
+    
+    // ローカルストレージから読み込み
+    function loadRecords() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          records = JSON.parse(saved);
+        } catch (e) {
+          records = {};
+        }
+      }
+    }
+    
+    // ローカルストレージに保存
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+    
+    // テーブル生成
+    function renderTable() {
+      const headerRow = document.getElementById('headerRow');
+      const tableBody = document.getElementById('tableBody');
+      
+      // ヘッダー（メンバー列）を追加
+      MEMBERS.forEach(member => {
+        const th = document.createElement('th');
+        th.className = 'th-member';
+        th.innerHTML = `
+          <div class="member-header">
+            <span class="member-name">${member.name}</span>
+            <span class="member-role">${member.role}</span>
+          </div>
+        `;
+        headerRow.appendChild(th);
+      });
+      
+      // 本体（研修行）を生成
+      TRAINING_ITEMS.forEach(training => {
+        const tr = document.createElement('tr');
+        
+        // 研修名セル
+        const tdTraining = document.createElement('td');
+        tdTraining.className = 'td-training';
+        tdTraining.innerHTML = `
+          <div class="training-info">
+            ${training.category === '必須' ? '<span class="required-badge">必須</span>' : ''}
+            ${training.name}
+          </div>
+        `;
+        tr.appendChild(tdTraining);
+        
+        // メンバーごとの記録セル
+        MEMBERS.forEach(member => {
+          const td = document.createElement('td');
+          td.className = 'td-record';
+          
+          const key = `${member.id}-${training.id}`;
+          const record = records[key];
+          
+          const btn = document.createElement('button');
+          btn.className = `record-btn ${record ? 'completed' : 'not-completed'}`;
+          btn.title = record 
+            ? `完了: ${record}\nクリックで取消` 
+            : 'クリックで完了登録';
+          btn.onclick = () => toggleRecord(member.id, training.id);
+          
+          if (record) {
+            btn.innerHTML = `
+              <span class="check-mark">○</span>
+              <span class="completed-date">${record}</span>
+            `;
+          } else {
+            btn.innerHTML = `<span class="empty-mark">−</span>`;
+          }
+          
+          td.appendChild(btn);
+          tr.appendChild(td);
+        });
+        
+        tableBody.appendChild(tr);
+      });
+    }
+    
+    // 記録のトグル
+    function toggleRecord(memberId, trainingId) {
+      const key = `${memberId}-${trainingId}`;
+      
+      if (records[key]) {
+        // 完了を取り消し
+        if (confirm('この研修記録を取り消しますか？')) {
+          delete records[key];
+        } else {
+          return;
+        }
+      } else {
+        // 完了を記録
+        records[key] = formatDate(new Date());
+      }
+      
+      // 保存
+      saveRecords();
+      
+      // 画面更新（シンプルに再描画）
+      document.getElementById('headerRow').innerHTML = '<th class="th-training">研修項目</th>';
+      document.getElementById('tableBody').innerHTML = '';
+      renderTable();
+      updateStats();
+    }
+    
+    // 統計更新
+    function updateStats() {
+      const statsGrid = document.getElementById('statsGrid');
+      statsGrid.innerHTML = '';
+      
+      MEMBERS.forEach(member => {
+        const completed = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]).length;
+        const total = TRAINING_ITEMS.length;
+        const percentage = Math.round((completed / total) * 100);
+        
+        let barColor = '#F59E0B'; // 黄色
+        if (percentage === 100) barColor = '#059669'; // 緑
+        else if (percentage >= 50) barColor = '#0D9488'; // ティール
+        
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `
+          <div class="stat-name">${member.name}</div>
+          <div class="stat-progress">
+            <div class="stat-bar" style="width: ${percentage}%; background-color: ${barColor};"></div>
+          </div>
+          <div class="stat-text">${completed}/${total}件 (${percentage}%)</div>
+        `;
+        statsGrid.appendChild(card);
+      });
+    }
+    
+    // 日付フォーマット（YYYY/MM/DD）
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}/${m}/${d}`;
+    }
+    
+    // 日付フォーマット（日本語）
+    function formatDateJP(date) {
+      return date.toLocaleDateString('ja-JP', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    
+    // データ出力（CSV形式）
+    function exportData() {
+      let csv = '研修項目,';
+      csv += MEMBERS.map(m => m.name).join(',') + '\n';
+      
+      TRAINING_ITEMS.forEach(training => {
+        csv += `"${training.name}",`;
+        csv += MEMBERS.map(member => {
+          const key = `${member.id}-${training.id}`;
+          return records[key] || '';
+        }).join(',');
+        csv += '\n';
+      });
+      
+      // BOM付きUTF-8でダウンロード
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+      const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `研修記録_${formatDate(new Date()).replace(/\//g, '')}.csv`;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+    }
+    
+    // ページ読み込み時に初期化
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+</html>
