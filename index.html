@@ -561,6 +561,8 @@
     
     // ローカルストレージのキー
     const STORAGE_KEY = 'trainingRecords';
+    const STORAGE_KEY_TRAINING = 'trainingItems';
+    const STORAGE_KEY_MEMBERS = 'memberItems';
     
     // 研修記録データ
     let records = {};
@@ -570,7 +572,8 @@
       // 日付表示
       document.getElementById('currentDate').textContent = formatDateJP(new Date());
       
-      // 保存データの読み込み
+      // 保存データの読み込み（研修項目・メンバー・記録）
+      loadMasterData();
       loadRecords();
       
       // テーブル生成
@@ -578,6 +581,41 @@
       
       // 統計更新
       updateStats();
+    }
+    
+    // マスタデータ（研修項目・メンバー）をローカルストレージから読み込み
+    function loadMasterData() {
+      // 研修項目の読み込み
+      const savedTraining = localStorage.getItem(STORAGE_KEY_TRAINING);
+      if (savedTraining) {
+        try {
+          const parsed = JSON.parse(savedTraining);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            TRAINING_ITEMS = parsed;
+          }
+        } catch (e) {
+          console.error('研修項目の読み込みエラー:', e);
+        }
+      }
+      
+      // メンバーの読み込み
+      const savedMembers = localStorage.getItem(STORAGE_KEY_MEMBERS);
+      if (savedMembers) {
+        try {
+          const parsed = JSON.parse(savedMembers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            MEMBERS = parsed;
+          }
+        } catch (e) {
+          console.error('メンバーの読み込みエラー:', e);
+        }
+      }
+    }
+    
+    // マスタデータ（研修項目・メンバー）をローカルストレージに保存
+    function saveMasterData() {
+      localStorage.setItem(STORAGE_KEY_TRAINING, JSON.stringify(TRAINING_ITEMS));
+      localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(MEMBERS));
     }
     
     // ローカルストレージから読み込み
@@ -854,7 +892,10 @@
           renderTable();
           updateStats();
           
-          alert('データを読み込みました。\n研修項目: ' + TRAINING_ITEMS.length + '件\nメンバー: ' + MEMBERS.length + '名');
+          // マスタデータをローカルストレージに保存
+          saveMasterData();
+          
+          alert('データを読み込み、保存しました。\n研修項目: ' + TRAINING_ITEMS.length + '件\nメンバー: ' + MEMBERS.length + '名\n\n次回起動時もこのデータが使用されます。');
           
         } catch (error) {
           alert('ファイルの読み込みに失敗しました。\n' + error.message);
