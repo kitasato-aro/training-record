@@ -114,18 +114,6 @@
       min-width: 280px;
     }
     
-    th.th-hours {
-      min-width: 60px;
-      text-align: center;
-    }
-    
-    td.td-hours {
-      text-align: center;
-      font-size: 13px;
-      color: #64748B;
-      white-space: nowrap;
-    }
-    
     th.th-member {
       min-width: 110px;
       text-align: center;
@@ -175,6 +163,41 @@
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+    
+    .training-name {
+      flex: 1;
+    }
+    
+    .training-hours {
+      font-size: 12px;
+      font-weight: 500;
+      color: #0F766E;
+      background: #CCFBF1;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    
+    .training-meta {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+    
+    .training-category {
+      color: #6366F1;
+      background: #EEF2FF;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    
+    .training-provider {
+      color: #64748B;
+      background: #F1F5F9;
+      padding: 2px 6px;
+      border-radius: 4px;
     }
     
     .required-badge {
@@ -341,69 +364,6 @@
       margin-top: 6px;
     }
     
-    .stat-hours {
-      font-size: 12px;
-      color: #0D9488;
-      margin-top: 4px;
-      font-weight: 500;
-    }
-    
-    .stat-hours.achieved {
-      color: #059669;
-    }
-    
-    .stat-hours.not-achieved {
-      color: #DC2626;
-    }
-    
-    .stats-subtitle {
-      font-weight: 400;
-      font-size: 12px;
-      color: #64748B;
-    }
-    
-    /* 全体集計 */
-    .total-stats {
-      background: linear-gradient(135deg, #F0FDFA 0%, #ECFDF5 100%);
-      border: 1px solid #99F6E4;
-    }
-    
-    .total-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-    
-    .total-card {
-      padding: 16px;
-      background: white;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    
-    .total-label {
-      font-size: 12px;
-      color: #64748B;
-      margin-bottom: 4px;
-    }
-    
-    .total-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #0F766E;
-    }
-    
-    .total-value.warning {
-      color: #DC2626;
-    }
-    
-    .total-unit {
-      font-size: 14px;
-      font-weight: 400;
-      color: #64748B;
-    }
-    
     /* フッター */
     .footer {
       text-align: center;
@@ -467,8 +427,10 @@
       </div>
       <div class="header-right">
         <span class="date-display" id="currentDate"></span>
-        <button class="btn btn-outline no-print" onclick="window.print()">印刷</button>
+        <button class="btn btn-outline no-print" onclick="showPrintModal()">研修記録ダウンロード</button>
         <button class="btn btn-outline no-print" onclick="exportData()">データ出力</button>
+        <button class="btn btn-outline no-print" onclick="showAdminLogin()">データ読込</button>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFileUpload(event)">
       </div>
     </div>
   </header>
@@ -480,7 +442,6 @@
         <thead>
           <tr id="headerRow">
             <th class="th-training">研修項目</th>
-            <th class="th-hours">時間</th>
             <!-- メンバーのヘッダーはJSで生成 -->
           </tr>
         </thead>
@@ -507,16 +468,8 @@
 
     <!-- 統計 -->
     <div class="stats">
-      <h3>完了状況サマリー <span class="stats-subtitle">（年間目標: <span id="targetHours">20</span>時間）</span></h3>
+      <h3>完了状況サマリー</h3>
       <div class="stats-grid" id="statsGrid">
-        <!-- 内容はJSで生成 -->
-      </div>
-    </div>
-    
-    <!-- 全体集計 -->
-    <div class="stats total-stats">
-      <h3>研修時間 全体集計</h3>
-      <div class="total-grid" id="totalGrid">
         <!-- 内容はJSで生成 -->
       </div>
     </div>
@@ -527,29 +480,72 @@
     <p>© 2024 北里大学病院 臨床研究推進センター</p>
   </footer>
 
+  <!-- 管理者ログインモーダル -->
+  <div id="adminModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:32px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-width:400px; width:90%;">
+      <h3 style="margin:0 0 20px 0; font-size:18px; color:#334155;">管理者認証</h3>
+      <p style="margin:0 0 16px 0; font-size:14px; color:#64748B;">データ読込を行うにはパスワードを入力してください。</p>
+      <input type="password" id="adminPassword" placeholder="パスワード" style="width:100%; padding:12px; border:1px solid #E2E8F0; border-radius:8px; font-size:14px; margin-bottom:16px; box-sizing:border-box;">
+      <div style="display:flex; gap:12px; justify-content:flex-end;">
+        <button onclick="closeAdminModal()" style="padding:10px 20px; border:1px solid #E2E8F0; background:white; border-radius:8px; font-size:14px; cursor:pointer;">キャンセル</button>
+        <button onclick="verifyAndSelectFile()" style="padding:10px 20px; border:none; background:#0F766E; color:white; border-radius:8px; font-size:14px; cursor:pointer;">ファイル選択</button>
+      </div>
+      <p id="errorMsg" style="color:#DC2626; font-size:13px; margin-top:12px; display:none;">パスワードが正しくありません。</p>
+    </div>
+  </div>
+
+  <!-- 印刷モーダル -->
+  <div id="printModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:32px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-width:500px; width:90%;">
+      <!-- 選択画面 -->
+      <div id="printSelectView">
+        <h3 style="margin:0 0 20px 0; font-size:18px; color:#334155;">研修記録のダウンロード</h3>
+        <p style="margin:0 0 16px 0; font-size:14px; color:#64748B;">担当者を選択してWord形式で研修記録をダウンロードします。</p>
+        <div id="memberSelectList" style="max-height:300px; overflow-y:auto; border:1px solid #E2E8F0; border-radius:8px; margin-bottom:16px;">
+          <!-- メンバーリストはJSで生成 -->
+        </div>
+        <div style="display:flex; gap:12px; justify-content:flex-end;">
+          <button onclick="closePrintModal()" style="padding:10px 20px; border:1px solid #E2E8F0; background:white; border-radius:8px; font-size:14px; cursor:pointer;">キャンセル</button>
+          <button onclick="generateWordDocument()" style="padding:10px 20px; border:none; background:#0F766E; color:white; border-radius:8px; font-size:14px; cursor:pointer;">ダウンロード</button>
+        </div>
+      </div>
+      <!-- ローディング画面 -->
+      <div id="printLoadingView" style="display:none; text-align:center; padding:40px 20px;">
+        <div style="width:50px; height:50px; border:4px solid #E2E8F0; border-top:4px solid #0F766E; border-radius:50%; margin:0 auto 20px; animation:spin 1s linear infinite;"></div>
+        <p style="font-size:16px; color:#334155; margin:0;">只今、ダウンロード中です...</p>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     // ============================================================
     // 【設定エリア】研修項目とメンバーをここで編集してください
     // ============================================================
     
+    // 管理者パスワード
+    const ADMIN_PASSWORD = 'kazu123';
+    
     // 研修項目マスタ（必要に応じて追加・編集）
-    // hours: 研修時間（時間単位）
-    const TRAINING_ITEMS = [
-      { id: 1, name: 'GCP研修（医薬品）', category: '必須', provider: 'ICRP', hours: 3 },
-      { id: 2, name: 'GCP研修（再生医療）', category: '必須', provider: 'ICRP', hours: 3 },
-      { id: 3, name: '研究倫理研修', category: '必須', provider: 'CITI Japan', hours: 4 },
-      { id: 4, name: '個人情報保護研修', category: '必須', provider: '施設内', hours: 2 },
-      { id: 5, name: '利益相反（COI）研修', category: '必須', provider: '施設内', hours: 1.5 },
-      { id: 6, name: 'EDCシステム操作研修', category: '実務', provider: '施設内', hours: 3 },
-      { id: 7, name: 'データマネジメント基礎', category: '実務', provider: '施設内', hours: 2.5 },
-      { id: 8, name: '有害事象報告研修', category: '実務', provider: '施設内', hours: 2 },
+    let TRAINING_ITEMS = [
+      { id: 1, name: '観察型疫学研究と検証型臨床試験の違い', category: '必須', provider: 'ICRweb', min: 24 },
+      { id: 2, name: '臨床試験に必要な統計的考え方', category: '実務', provider: 'ICRweb', min: 30 },
+      { id: 3, name: '臨床試験におけるデータの質の保証', category: '実務', provider: 'ICRweb', min: 34 },
+      { id: 4, name: '臨床試験を行う際に知っておかなければならない研究倫理', category: '実務', provider: 'ICRweb', min: 34 },
+      { id: 5, name: '疫学分野における臨床試験の実例', category: '実務', provider: 'ICRweb', hours: 24 },
+      { id: 6, name: '臨床研究の歴史、意義、研究の定式化（2012年度版）', category: '実務', provider: 'ICRweb', min: 70 },
+      { id: 7, name: '臨床研究のデザインと統計学（2012年度版）', category: '実務', provider: 'ICRweb', min: 51 },
+      { id: 8, name: '患者立脚型アウトカムの測定：主観的尺度の開発と検証', category: '実務', provider: 'ICRweb', min: 78 },
     ];
-    
-    // 年間目標研修時間（SOP準拠）
-    const TARGET_HOURS = 20;
-    
     // メンバーマスタ（必要に応じて追加・編集）
-    const MEMBERS = [
+    let MEMBERS = [
       { id: 1, name: '中川 智枝', role: 'PM' },
       { id: 2, name: '見戸 幸子', role: 'PM' },
       { id: 3, name: '小林 祐太', role: 'PM' },
@@ -629,16 +625,15 @@
         tdTraining.innerHTML = `
           <div class="training-info">
             ${training.category === '必須' ? '<span class="required-badge">必須</span>' : ''}
-            ${training.name}
+            <span class="training-name">${training.name}</span>
+            <span class="training-hours">${training.hours || training.min || 0}min</span>
+          </div>
+          <div class="training-meta">
+            <span class="training-category">${training.category || ''}</span>
+            <span class="training-provider">${training.provider || ''}</span>
           </div>
         `;
         tr.appendChild(tdTraining);
-        
-        // 時間セル
-        const tdHours = document.createElement('td');
-        tdHours.className = 'td-hours';
-        tdHours.textContent = `${training.hours}h`;
-        tr.appendChild(tdHours);
         
         // メンバーごとの記録セル
         MEMBERS.forEach(member => {
@@ -692,7 +687,7 @@
       saveRecords();
       
       // 画面更新（シンプルに再描画）
-      document.getElementById('headerRow').innerHTML = '<th class="th-training">研修項目</th><th class="th-hours">時間</th>';
+      document.getElementById('headerRow').innerHTML = '<th class="th-training">研修項目</th>';
       document.getElementById('tableBody').innerHTML = '';
       renderTable();
       updateStats();
@@ -703,26 +698,10 @@
       const statsGrid = document.getElementById('statsGrid');
       statsGrid.innerHTML = '';
       
-      // 目標時間を表示
-      document.getElementById('targetHours').textContent = TARGET_HOURS;
-      
-      // 全体集計用の変数
-      let totalCompletedHours = 0;
-      let membersAchieved = 0;
-      
       MEMBERS.forEach(member => {
-        const completedTrainings = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]);
-        const completed = completedTrainings.length;
+        const completed = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]).length;
         const total = TRAINING_ITEMS.length;
         const percentage = Math.round((completed / total) * 100);
-        
-        // 完了した研修の時間を合計
-        const completedHours = completedTrainings.reduce((sum, t) => sum + t.hours, 0);
-        totalCompletedHours += completedHours;
-        
-        // 目標達成判定
-        const achieved = completedHours >= TARGET_HOURS;
-        if (achieved) membersAchieved++;
         
         let barColor = '#F59E0B'; // 黄色
         if (percentage === 100) barColor = '#059669'; // 緑
@@ -736,57 +715,8 @@
             <div class="stat-bar" style="width: ${percentage}%; background-color: ${barColor};"></div>
           </div>
           <div class="stat-text">${completed}/${total}件 (${percentage}%)</div>
-          <div class="stat-hours ${achieved ? 'achieved' : 'not-achieved'}">
-            ${completedHours}時間 / ${TARGET_HOURS}時間 ${achieved ? '✓ 達成' : ''}
-          </div>
         `;
         statsGrid.appendChild(card);
-      });
-      
-      // 全体集計を更新
-      updateTotalStats(totalCompletedHours, membersAchieved);
-    }
-    
-    // 全体集計の更新
-    function updateTotalStats(totalHours, achievedCount) {
-      const totalGrid = document.getElementById('totalGrid');
-      totalGrid.innerHTML = '';
-      
-      // 全研修の合計時間
-      const allTrainingHours = TRAINING_ITEMS.reduce((sum, t) => sum + t.hours, 0);
-      
-      // 平均完了時間
-      const avgHours = (totalHours / MEMBERS.length).toFixed(1);
-      
-      const cards = [
-        {
-          label: '全研修の合計時間',
-          value: allTrainingHours,
-          unit: '時間',
-          warning: false
-        },
-        {
-          label: 'メンバー平均完了時間',
-          value: avgHours,
-          unit: '時間',
-          warning: parseFloat(avgHours) < TARGET_HOURS
-        },
-        {
-          label: '目標達成者数',
-          value: achievedCount,
-          unit: `/ ${MEMBERS.length}人`,
-          warning: achievedCount < MEMBERS.length
-        }
-      ];
-      
-      cards.forEach(c => {
-        const card = document.createElement('div');
-        card.className = 'total-card';
-        card.innerHTML = `
-          <div class="total-label">${c.label}</div>
-          <div class="total-value ${c.warning ? 'warning' : ''}">${c.value}<span class="total-unit">${c.unit}</span></div>
-        `;
-        totalGrid.appendChild(card);
       });
     }
     
@@ -809,28 +739,17 @@
     
     // データ出力（CSV形式）
     function exportData() {
-      let csv = '研修項目,時間(h),';
+      let csv = '研修項目,';
       csv += MEMBERS.map(m => m.name).join(',') + '\n';
       
       TRAINING_ITEMS.forEach(training => {
-        csv += `"${training.name}",${training.hours},`;
+        csv += `"${training.name}",`;
         csv += MEMBERS.map(member => {
           const key = `${member.id}-${training.id}`;
           return records[key] || '';
         }).join(',');
         csv += '\n';
       });
-      
-      // 合計行を追加
-      csv += '\n合計時間,,';
-      csv += MEMBERS.map(member => {
-        const completedTrainings = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]);
-        const completedHours = completedTrainings.reduce((sum, t) => sum + t.hours, 0);
-        return `${completedHours}時間`;
-      }).join(',');
-      csv += '\n';
-      
-      csv += `目標時間,,${MEMBERS.map(() => `${TARGET_HOURS}時間`).join(',')}\n`;
       
       // BOM付きUTF-8でダウンロード
       const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
@@ -847,6 +766,310 @@
     
     // ページ読み込み時に初期化
     document.addEventListener('DOMContentLoaded', init);
+    
+    // ============================================================
+    // 管理者機能：データ読み込み
+    // ============================================================
+    
+    // 管理者モーダルを表示
+    function showAdminLogin() {
+      document.getElementById('adminModal').style.display = 'flex';
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('errorMsg').style.display = 'none';
+      document.getElementById('adminPassword').focus();
+    }
+    
+    // 管理者モーダルを閉じる
+    function closeAdminModal() {
+      document.getElementById('adminModal').style.display = 'none';
+    }
+    
+    // パスワード検証してファイル選択
+    function verifyAndSelectFile() {
+      const password = document.getElementById('adminPassword').value;
+      
+      if (password === ADMIN_PASSWORD) {
+        closeAdminModal();
+        document.getElementById('fileInput').click();
+      } else {
+        document.getElementById('errorMsg').style.display = 'block';
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminPassword').focus();
+      }
+    }
+    
+    // Enterキーでも認証できるように
+    document.addEventListener('keydown', function(e) {
+      if (document.getElementById('adminModal').style.display === 'flex' && e.key === 'Enter') {
+        verifyAndSelectFile();
+      }
+      if (document.getElementById('adminModal').style.display === 'flex' && e.key === 'Escape') {
+        closeAdminModal();
+      }
+      if (document.getElementById('printModal').style.display === 'flex' && e.key === 'Escape') {
+        closePrintModal();
+      }
+    });
+    
+    // Excelファイル読み込み処理
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          // 研修項目シートを読み込み
+          if (workbook.SheetNames.includes('研修項目')) {
+            const trainingSheet = workbook.Sheets['研修項目'];
+            const trainingData = XLSX.utils.sheet_to_json(trainingSheet);
+            
+            TRAINING_ITEMS = trainingData.map(row => ({
+              id: row['ID'],
+              name: row['研修名'],
+              category: row['カテゴリ'],
+              provider: row['提供機関'],
+              hours: row['時間(m)'] || 0
+            }));
+          }
+          
+          // メンバーシートを読み込み
+          if (workbook.SheetNames.includes('メンバー')) {
+            const memberSheet = workbook.Sheets['メンバー'];
+            const memberData = XLSX.utils.sheet_to_json(memberSheet);
+            
+            MEMBERS = memberData.map(row => ({
+              id: row['ID'],
+              name: row['氏名'],
+              role: row['役割']
+            }));
+          }
+          
+          // テーブルを再描画
+          document.getElementById('headerRow').innerHTML = '<th class="th-training">研修項目</th>';
+          document.getElementById('tableBody').innerHTML = '';
+          renderTable();
+          updateStats();
+          
+          alert('データを読み込みました。\n研修項目: ' + TRAINING_ITEMS.length + '件\nメンバー: ' + MEMBERS.length + '名');
+          
+        } catch (error) {
+          alert('ファイルの読み込みに失敗しました。\n' + error.message);
+        }
+      };
+      
+      reader.readAsArrayBuffer(file);
+      event.target.value = ''; // リセット
+    }
+    
+    // ============================================================
+    // 印刷機能：Word出力
+    // ============================================================
+    
+    // 印刷モーダルを表示
+    function showPrintModal() {
+      const modal = document.getElementById('printModal');
+      const memberList = document.getElementById('memberSelectList');
+      
+      // メンバーリストを生成
+      memberList.innerHTML = MEMBERS.map(member => {
+        const completedCount = TRAINING_ITEMS.filter(t => records[`${member.id}-${t.id}`]).length;
+        return `
+          <label style="display:flex; align-items:center; padding:12px 16px; border-bottom:1px solid #E2E8F0; cursor:pointer; transition:background 0.2s;" 
+                 onmouseover="this.style.background='#F0FDFA'" onmouseout="this.style.background='white'">
+            <input type="radio" name="selectedMember" value="${member.id}" style="margin-right:12px; width:18px; height:18px;">
+            <div style="flex:1;">
+              <div style="font-weight:500; color:#334155;">${member.name}</div>
+              <div style="font-size:12px; color:#64748B;">${member.role} ・ 完了: ${completedCount}/${TRAINING_ITEMS.length}件</div>
+            </div>
+          </label>
+        `;
+      }).join('');
+      
+      modal.style.display = 'flex';
+    }
+    
+    // 印刷モーダルを閉じる
+    function closePrintModal() {
+      document.getElementById('printModal').style.display = 'none';
+      // 次回表示時のために選択画面に戻す
+      document.getElementById('printLoadingView').style.display = 'none';
+      document.getElementById('printSelectView').style.display = 'block';
+    }
+    
+    // Word文書を生成
+    async function generateWordDocument() {
+      const selectedRadio = document.querySelector('input[name="selectedMember"]:checked');
+      
+      if (!selectedRadio) {
+        alert('担当者を選択してください。');
+        return;
+      }
+      
+      const memberId = parseInt(selectedRadio.value);
+      const member = MEMBERS.find(m => m.id === memberId);
+      
+      if (!member) {
+        alert('担当者が見つかりません。');
+        return;
+      }
+      
+      // 完了した研修を取得
+      const completedTrainings = TRAINING_ITEMS.filter(t => records[`${memberId}-${t.id}`]);
+      
+      if (completedTrainings.length === 0) {
+        alert(`${member.name}さんの完了した研修がありません。`);
+        return;
+      }
+      
+      // ローディング表示に切り替え
+      document.getElementById('printSelectView').style.display = 'none';
+      document.getElementById('printLoadingView').style.display = 'block';
+      
+      // 少し待ってから処理を開始（UIの更新を反映させるため）
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      try {
+        // 合計時間を計算
+        const totalMinutes = completedTrainings.reduce((sum, t) => sum + (t.hours || t.min || 0), 0);
+        const totalHours = Math.floor(totalMinutes / 60);
+        const remainMinutes = totalMinutes % 60;
+        
+        // 出力日
+        const outputDate = formatDateJP(new Date());
+        
+        // 研修一覧のHTML行を生成
+        const trainingRows = completedTrainings.map((training, index) => {
+          const bgColor = index % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
+          return `
+            <tr>
+              <td style="border: 1px solid #CCCCCC; padding: 8px; background-color: ${bgColor};">${training.name}</td>
+              <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: center; background-color: ${bgColor};">${training.provider || '-'}</td>
+              <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: right; background-color: ${bgColor};">${training.hours || training.min || 0}</td>
+            </tr>
+          `;
+        }).join('');
+        
+        // Word用のHTMLを生成
+        const htmlContent = `
+          <html xmlns:o="urn:schemas-microsoft-com:office:office" 
+                xmlns:w="urn:schemas-microsoft-com:office:word" 
+                xmlns="http://www.w3.org/TR/REC-html40">
+          <head>
+            <meta charset="UTF-8">
+            <title>研修記録</title>
+            <style>
+              @page { 
+                size: A4; 
+                margin: 2cm; 
+              }
+              body { 
+                font-family: "Yu Gothic", "游ゴシック", sans-serif; 
+                font-size: 12pt;
+                line-height: 1.6;
+              }
+              h1 { 
+                text-align: center; 
+                font-size: 24pt; 
+                margin-bottom: 30px;
+                color: #333333;
+              }
+              .info { 
+                margin-bottom: 10px; 
+                font-size: 12pt;
+              }
+              .info-label { 
+                font-weight: bold; 
+              }
+              .summary {
+                margin: 20px 0;
+                font-size: 13pt;
+                font-weight: bold;
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-top: 20px;
+              }
+              th { 
+                background-color: #0F766E; 
+                color: white; 
+                padding: 10px 8px; 
+                border: 1px solid #CCCCCC;
+                font-weight: bold;
+              }
+              td { 
+                padding: 8px; 
+                border: 1px solid #CCCCCC; 
+              }
+              .total-row td {
+                background-color: #E0F2FE;
+                font-weight: bold;
+              }
+              .footer {
+                margin-top: 40px;
+                text-align: right;
+                color: #64748B;
+                font-size: 10pt;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>研修記録</h1>
+            
+            <p class="info"><span class="info-label">担当者名:</span> ${member.name}</p>
+            <p class="info"><span class="info-label">役割:</span> ${member.role}</p>
+            <p class="info"><span class="info-label">出力日:</span> ${outputDate}</p>
+            
+            <p class="summary">完了研修数: ${completedTrainings.length}件</p>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 55%;">研修名</th>
+                  <th style="width: 25%;">提供機関</th>
+                  <th style="width: 20%;">時間(m)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trainingRows}
+                <tr class="total-row">
+                  <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: right;" colspan="2">合計時間</td>
+                  <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: right;">${totalMinutes}分 (${totalHours}時間${remainMinutes}分)</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <p class="footer">北里大学病院 臨床研究推進センター</p>
+          </body>
+          </html>
+        `;
+        
+        // Blobを作成してダウンロード
+        const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `研修記録_${member.name}_${formatDate(new Date()).replace(/\//g, '')}.doc`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        
+        // ダウンロード完了後、モーダルを閉じる
+        closePrintModal();
+        
+      } catch (error) {
+        console.error('Word生成エラー:', error);
+        // エラー時は選択画面に戻す
+        document.getElementById('printLoadingView').style.display = 'none';
+        document.getElementById('printSelectView').style.display = 'block';
+        alert('Word文書の生成に失敗しました。\n' + error.message);
+      }
+    }
   </script>
 
 </body>
