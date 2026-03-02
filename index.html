@@ -89,6 +89,8 @@
       border-radius: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 200px);
     }
     
     table {
@@ -208,6 +210,17 @@
       border-radius: 4px;
     }
     
+
+    .training-link {
+      color: #0F766E;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .training-link:hover {
+      text-decoration: underline;
+      color: #115E59;
+    }
     /* 完了ボタン */
     .record-btn {
       display: flex;
@@ -258,6 +271,85 @@
       margin-top: 2px;
     }
     
+
+    /* 検索フィルタ */
+    .filter-bar {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-search {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    
+    .filter-search input {
+      width: 100%;
+      padding: 9px 12px 9px 36px;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    .filter-search input:focus {
+      border-color: #0F766E;
+      box-shadow: 0 0 0 2px rgba(15,118,110,0.1);
+    }
+    
+    .filter-search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94A3B8;
+      font-size: 16px;
+      pointer-events: none;
+    }
+    
+    .filter-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+      color: #334155;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    
+    .filter-toggle:hover {
+      border-color: #0F766E;
+      color: #0F766E;
+    }
+    
+    .filter-toggle.active {
+      background: #FEE2E2;
+      border-color: #DC2626;
+      color: #DC2626;
+    }
+    
+    .filter-count {
+      font-size: 13px;
+      color: #64748B;
+      white-space: nowrap;
+    }
+
     /* 凡例 */
     .legend {
       margin-top: 24px;
@@ -436,7 +528,19 @@
 
   <!-- メインコンテンツ -->
   <main class="main">
-    <div class="table-wrapper">
+      <!-- 検索フィルタ -->
+    <div class="filter-bar no-print">
+      <div class="filter-search">
+        <span class="filter-search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="研修名で検索..." oninput="applyFilter()">
+      </div>
+      <button class="filter-toggle" id="requiredFilterBtn" onclick="toggleRequiredFilter()">
+        <span class="required-badge" style="font-size:11px;">必須</span> 必須のみ表示
+      </button>
+      <span class="filter-count" id="filterCount"></span>
+    </div>
+
+  <div class="table-wrapper">
       <table id="trainingTable">
         <thead>
           <tr id="headerRow"><th class="th-training">研修項目</th><th class="th-member">
@@ -3109,6 +3213,36 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
     }
     
+
+    // フィルタ状態
+    let filterText = '';
+    let filterRequiredOnly = false;
+    
+    // フィルタを適用
+    function applyFilter() {
+      filterText = document.getElementById('searchInput').value.toLowerCase();
+      renderTable();
+    }
+    
+    // 必須フィルタのトグル
+    function toggleRequiredFilter() {
+      filterRequiredOnly = !filterRequiredOnly;
+      const btn = document.getElementById('requiredFilterBtn');
+      btn.classList.toggle('active', filterRequiredOnly);
+      renderTable();
+    }
+    
+    // フィルタされた研修リストを取得
+    function getFilteredTrainings() {
+      return TRAINING_ITEMS.filter(t => {
+        const matchText = !filterText || t.name.toLowerCase().includes(filterText) ||
+          (t.category || '').toLowerCase().includes(filterText) ||
+          (t.provider || '').toLowerCase().includes(filterText);
+        const matchRequired = !filterRequiredOnly || (t.category && t.category.startsWith('必須'));
+        return matchText && matchRequired;
+      });
+    }
+    
     // テーブル生成
     function renderTable() {
       const headerRow = document.getElementById('headerRow');
@@ -3131,17 +3265,29 @@
         headerRow.appendChild(th);
       });
       
+      // フィルタ適用
+      const filteredTrainings = getFilteredTrainings();
+      const countEl = document.getElementById('filterCount');
+      if (countEl) {
+        countEl.textContent = filteredTrainings.length === TRAINING_ITEMS.length
+          ? `全${TRAINING_ITEMS.length}件`
+          : `${filteredTrainings.length} / ${TRAINING_ITEMS.length}件`;
+      }
+      
       // 本体（研修行）を生成
-      TRAINING_ITEMS.forEach(training => {
+      filteredTrainings.forEach(training => {
         const tr = document.createElement('tr');
         
         // 研修名セル
         const tdTraining = document.createElement('td');
         tdTraining.className = 'td-training';
+        const nameHtml = training.url
+          ? `<a class="training-link" href="${training.url}" target="_blank" title="${training.url}">${training.name}</a>`
+          : `<span class="training-name">${training.name}</span>`;
         tdTraining.innerHTML = `
           <div class="training-info">
-            ${training.category === '必須' ? '<span class="required-badge">必須</span>' : ''}
-            <span class="training-name">${training.name}</span>
+            ${training.category && training.category.startsWith('必須') ? '<span class="required-badge">必須</span>' : ''}
+            ${nameHtml}
             <span class="training-hours">${training.hours || training.min || 0}min</span>
           </div>
           <div class="training-meta">
@@ -3267,11 +3413,12 @@
     
     // データ出力（CSV形式）
     function exportData() {
-      let csv = '研修項目,';
-      csv += MEMBERS.map(m => m.name).join(',') + '\n';
+      // ヘッダー行：研修項目, 提供機関, カテゴリ, メンバー名（受講日）...
+      let csv = '研修項目,提供機関,カテゴリ,';
+      csv += MEMBERS.map(m => m.name + '（受講日）').join(',') + '\n';
       
       TRAINING_ITEMS.forEach(training => {
-        csv += `"${training.name}",`;
+        csv += `"${training.name}","${training.provider || ''}","${training.category || ''}",`;
         csv += MEMBERS.map(member => {
           const key = `${member.id}-${training.id}`;
           return records[key] || '';
@@ -3360,7 +3507,8 @@
               name: row['研修名'],
               category: row['カテゴリ'],
               provider: row['提供機関'],
-              hours: row['時間(m)'] || 0
+              hours: row['時間(m)'] || 0,
+              url: row['URL'] || ''
             }));
           }
           
@@ -3404,7 +3552,8 @@
         const name = (item.name || '').replace(/'/g, "\\'");
         const category = (item.category || '').replace(/'/g, "\\'");
         const provider = (item.provider || '').replace(/'/g, "\\'");
-        return `      { id: ${item.id}, name: '${name}', category: '${category}', provider: '${provider}', hours: ${item.hours || 0} }`;
+        const url = (item.url || '').replace(/'/g, "\\'");
+        return `      { id: ${item.id}, name: '${name}', category: '${category}', provider: '${provider}', hours: ${item.hours || 0}${url ? `, url: '${url}'` : ''} }`;
       }).join(',\n');
       
       // MEMBERSを文字列に変換
@@ -3446,7 +3595,8 @@
     function generateNewHTML() {
       // TRAINING_ITEMSを文字列に変換
       const trainingItemsStr = TRAINING_ITEMS.map(item => {
-        return `      { id: ${item.id}, name: '${item.name.replace(/'/g, "\\'")}', category: '${item.category.replace(/'/g, "\\'")}', provider: '${item.provider.replace(/'/g, "\\'")}', hours: ${item.hours || 0} }`;
+        const _url = (item.url || '').replace(/'/g, "\\'");
+        return `      { id: ${item.id}, name: '${item.name.replace(/'/g, "\\'")}', category: '${item.category.replace(/'/g, "\\'")}', provider: '${item.provider.replace(/'/g, "\\'")}', hours: ${item.hours || 0}${_url ? `, url: '${_url}'` : ''} }`;
       }).join(',\n');
       
       // MEMBERSを文字列に変換
@@ -3541,11 +3691,13 @@
         // 研修一覧のHTML行を生成
         const trainingRows = completedTrainings.map((training, index) => {
           const bgColor = index % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
+          const completionDate = records[`${memberId}-${training.id}`] || '-';
           return `
             <tr>
               <td style="border: 1px solid #CCCCCC; padding: 8px; background-color: ${bgColor};">${training.name}</td>
               <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: center; background-color: ${bgColor};">${training.provider || '-'}</td>
               <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: right; background-color: ${bgColor};">${training.hours || training.min || 0}</td>
+              <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: center; background-color: ${bgColor};">${completionDate}</td>
             </tr>
           `;
         }).join('');
@@ -3602,9 +3754,17 @@
                 padding: 8px; 
                 border: 1px solid #CCCCCC; 
               }
-              .total-row td {
-                background-color: #E0F2FE;
+
+              .total-box {
+                margin-top: 28px;
+                border-top: 2px solid #0F766E;
+                padding-top: 14px;
+              }
+              .total-text {
+                font-size: 13pt;
                 font-weight: bold;
+                color: #0F766E;
+                margin: 0;
               }
               .footer {
                 margin-top: 40px;
@@ -3626,19 +3786,20 @@
             <table>
               <thead>
                 <tr>
-                  <th style="width: 55%;">研修名</th>
-                  <th style="width: 25%;">提供機関</th>
-                  <th style="width: 20%;">時間(m)</th>
+                  <th style="width: 45%;">研修名</th>
+                  <th style="width: 20%;">提供機関</th>
+                  <th style="width: 15%;">時間(m)</th>
+                  <th style="width: 20%;">受講日</th>
                 </tr>
               </thead>
               <tbody>
                 ${trainingRows}
-                <tr class="total-row">
-                  <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: right;" colspan="2">合計時間</td>
-                  <td style="border: 1px solid #CCCCCC; padding: 8px; text-align: right;">${totalMinutes}分 (${totalHours}時間${remainMinutes}分)</td>
-                </tr>
               </tbody>
             </table>
+            
+            <div class="total-box">
+              <p class="total-text">完了研修数: ${completedTrainings.length} 件　　合計受講時間: ${totalHours} 時間 ${remainMinutes} 分（${totalMinutes} 分）</p>
+            </div>
             
             <p class="footer">北里大学病院 臨床研究推進センター</p>
           </body>
